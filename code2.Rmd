@@ -1,0 +1,372 @@
+```{r}
+
+# Install the required packages
+install.packages("dplyr")
+install.packages("caret")
+install.packages("DataExplorer")
+install.packages("tidyverse")
+install.packages("ggplot2")
+install.packages("corrplot")
+install.packages("lubridate")
+install.packages("heatmaply")
+
+```
+
+```{r}
+
+library(dplyr)
+library(caret)
+library(tidyverse)
+library(ggplot2)
+library(DataExplorer)
+library(lubridate)
+library(corrplot)
+library(heatmaply)
+
+
+```
+
+# 1. Data Exploration and Wrangling
+
+```{r}
+
+data <- read.csv('my_data.csv')
+```
+
+```{r}
+
+head(data)
+```
+
+```{r}
+
+summary(data)
+
+```
+
+```{r}
+
+unique_values <- data %>% select_if(is.character) %>% summarise_all(~length(unique(.)))
+
+unique_values
+
+```
+
+```{r}
+
+column_names <- colnames(data)
+
+column_names
+
+```
+
+**Handling Missing Values**
+
+```{r}
+
+missing_values <- data %>% summarise_all(~sum(is.na(.)))
+missing_values
+
+```
+
+```{r}
+
+missing_values_all <- colSums(is.na(data))
+
+missing_values_all
+
+```
+
+**Feature Selection**
+
+```{r}
+
+data <- subset(data, select = -X)
+
+columns_to_drop <- c('id', 'site_id', 'app_id', 'device_id', 'device_ip', 'device_model')
+
+data <- data[, !(names(data) %in% columns_to_drop)]
+
+```
+
+```{r}
+
+data$hour <- as.POSIXct(sprintf("%s%02d", substr(data$hour, 1, 10), as.numeric(substr(data$hour, 11, 12))), format = "%y%m%d%H")
+
+```
+
+```{r}
+
+data
+```
+
+**Convert character into categorical data**
+
+```{r}
+
+data$site_category <- as.numeric(factor(data$site_category)) - 1
+
+data$app_category <- as.numeric(factor(data$app_category)) - 1
+
+data$app_domain <- as.numeric(factor(data$app_domain)) - 1
+
+data$site_domain <- as.numeric(factor(data$site_domain)) - 1
+
+data$C1 <- as.numeric(factor(data$C1)) - 1
+
+data
+```
+
+#### Detecting Outliers
+
+```{r}
+
+numeric_cols <- c('C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20', 'C21')
+
+z_threshold <- 3
+
+outlier_counts <- sapply(numeric_cols, function(col) {
+  z_scores <- scale(data[[col]])
+  abs_z_scores <- abs(z_scores)
+  outliers <- abs_z_scores > z_threshold
+  return(sum(outliers))
+})
+
+```
+
+```{r}
+
+outlier_info <- data.frame(Column = names(outlier_counts), OutlierCount = outlier_counts)
+
+print(outlier_info)
+
+outlier_threshold <- 5
+
+columns_to_exclude <- outlier_info$Column[outlier_info$OutlierCount > outlier_threshold]
+
+columns_to_exclude
+
+```
+
+```{r}
+
+data$day <- wday(data$hour)
+
+```
+
+```{r}
+
+data$hour <- as.numeric(format(data$hour, "%H"))
+
+```
+
+# 2. Understanding the Data
+
+#### Distribution of Hour
+
+```{r}
+
+ggplot(data, aes(x = hour)) +
+geom_histogram(binwidth = 1, fill = "red", color = "green", alpha = 0.7) + 
+labs(title = "Distribution of Hour", x = "Hour", y = "Frequency")
+```
+
+#### Hourly Distribution by clicks
+
+```{r}
+
+ggplot(data, aes(x = factor(click), y = hour, fill = factor(click))) +
+geom_violin() +
+labs(title = "Hourly Distribution by Clicks", x = "Click", y = "Hour")
+
+```
+
+#### Correlation Matrix
+
+```{r}
+
+library(corrplot)
+
+train <- data
+numeric_train <- train[sapply(train, is.numeric)]
+cor_matrix <- cor(numeric_train)
+print(cor_matrix)
+corrplot(cor_matrix, method = "color")
+```
+
+```{r}
+
+data <- data[, !(names(data) %in% c('C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20', 'C21'))]
+```
+
+# 3. MultiArm Bandit - Epsilon Greedy
+
+```{r}
+
+df <- data
+
+num_arms <- ncol(df) - 3
+epsilon <- 0.1
+
+arm_counts <- rep(0, num_arms)
+arm_values <- rep(0, num_arms)
+
+exploration_counts <- rep(0, num_arms)
+exploitation_counts <- rep(0, num_arms)
+
+total_rewards <- 0
+cumulative_rewards <- numeric(nrow(df))
+
+arm_selections <- numeric(nrow(df))
+
+for (i in 1:nrow(df)) {
+    if (runif(1) < epsilon) {
+        chosen_arm <- sample(1:num_arms, 1)
+        exploration_counts[chosen_arm] <- exploration_counts[chosen_arm] + 1
+    } else {
+        chosen_arm <- which.max(arm_values)
+        exploitation_counts[chosen_arm] <- exploitation_counts[chosen_arm] + 1
+    }
+
+    reward <- ifelse(df$click[i] == 1, 1, 0)
+    arm_counts[chosen_arm] <- arm_counts[chosen_arm] + 1
+    total_rewards <- total_rewards + reward
+    arm_values[chosen_arm] <- (arm_values[chosen_arm] * (arm_counts[chosen_arm] - 1) + reward) / arm_counts[chosen_arm]
+
+    cumulative_rewards[i] <- total_rewards
+    arm_selections[i] <- chosen_arm
+}
+
+plot(cumulative_rewards, type = 'l', xlab = 'Round', ylab = 'Cumulative Rewards', main = 'Epsilon-Greedy Algorithm Learning Curve') 
+cat("Total Rewards:", total_rewards, "\n")
+cat("Arm Values:", arm_values, "\n")
+
+```
+
+**Testings on the dummy data**
+
+```{r}
+
+predict_epsilon_greedy <- function(arm_values, data_point, epsilon) {
+  if (runif(1) < epsilon) {
+    chosen_arm <- sample(1:length(arm_values), 1)
+  } else {
+    chosen_arm <- which.max(arm_values)
+  }
+  return(chosen_arm)
+}
+
+test_df <- data.frame(
+  C1 = c(1, 1, 1, 1, 1, 0),
+  banner_pos = c(1, 1, 1, 1, 1, 0),
+  site_domain = c(109, 130, 108, 52, 109, 109),
+  site_category = c(4, 1, 10, 10, 4, 4),
+  app_domain = c(21, 10, 10, 10, 19, 7),
+  app_category = c(6, 0, 0, 0, 6, 2),
+  device_type = c(6, 0, 0, 0, 6, 2),
+  device_conn_type = c(1, 1, 1, 1, 1, 0)
+)
+
+arm_counts_test <- arm_counts
+arm_values_test <- arm_values
+
+cumulative_rewards_test <- numeric(nrow(test_df))
+epsilon <- 0.1
+
+predictions_test <- integer(nrow(test_df)) 
+for (i in 1:nrow(test_df)) {
+  
+  chosen_arm_test <- predict_epsilon_greedy(arm_values_test, test_df[i, ], epsilon)
+  
+  reward_test <- ifelse(runif(1) < arm_values_test[chosen_arm_test], 1, 0)
+  print( reward_test)
+  
+}
+
+```
+
+# 4. EDA Analysis
+
+**Arm Selection Frequency**
+
+```{r}
+
+arm_selection_freq <- table(arm_selections)
+arm_selection_df <- data.frame(
+  arm = as.numeric(names(arm_selection_freq)),
+  frequency = as.numeric(arm_selection_freq)
+)
+
+library(ggplot2)
+
+ggplot(arm_selection_df, aes(x = factor(arm), y = frequency)) +
+  geom_bar(stat = 'identity', fill = 'skyblue', color = 'black') +
+  labs(title = 'Arm Selection Frequency', x = 'Arm Index', y = 'Frequency')
+
+```
+
+**Plot reward distribution**
+
+```{r}
+
+histogram_data <- data.frame(
+  Reward = reward,
+  Arm = factor(arm_selections)
+)
+
+ggplot(histogram_data, aes(x = Reward, fill = Arm)) +
+  geom_bar(position = 'dodge', color = 'black', alpha = 0.8) +
+  labs(title = 'Reward Distribution by Arm',
+       x = 'Reward',
+       y = 'Frequency') +
+  theme_minimal()
+ 
+```
+
+**Exploration and Exploitation**
+
+```{r}
+
+exploration_exploitation_data <- data.frame(
+  Round = 1:length(exploration_counts),
+  Exploration = exploration_counts,
+  Exploitation = exploitation_counts
+)
+
+plot(exploration_exploitation_data$Round, exploration_exploitation_data$Exploration,
+     type = 'l', col = 'blue', lty = 1, xlab = 'Round', ylab = 'Counts',
+     main = 'Exploration and Exploitation ')
+
+lines(exploration_exploitation_data$Round, exploration_exploitation_data$Exploitation,
+      type = 'l', col = 'red', lty = 1)
+
+legend("topright", legend = c("Exploration", "Exploitation"), col = c("blue", "red"), lty = 1)
+
+
+```
+
+#### Data Feature Distributions
+
+```{r}
+data_for_most_frequent_arm_train <- data
+
+
+par(mfrow = c(2, 2))
+hist(data_for_most_frequent_arm_train$hour, main = 'Distribution of Hour (All Data)', xlab = 'Hour', col = 'lightblue', border = 'black')
+hist(clicked_data$hour, main = 'Distribution of Hour (Clicked Data)', xlab = 'Hour', col = 'lightblue', border = 'black')
+
+hist(data_for_most_frequent_arm_train$C1, main = 'Distribution of C1 (All Data)', xlab = 'C1', col = 'lightblue', border = 'black')
+hist(clicked_data$C1, main = 'Distribution of C1 (Clicked Data)', xlab = 'C1', col = 'lightblue', border = 'black')
+
+hist(data_for_most_frequent_arm_train$banner_pos, main = 'Distribution of Banner Pos (All Data)', xlab = 'Banner Pos', col = 'lightblue', border = 'black')
+hist(clicked_data$banner_pos, main = 'Distribution of Banner Pos (Clicked Data)', xlab = 'Banner Pos', col = 'lightblue', border = 'black')
+par(mfrow = c(1, 1))
+
+```
+
+![](http://127.0.0.1:44749/chunk_output/331275357eeeed2d/56FE691D/ck8etzgjn1jgj/000028.png)
+
+```{r}
+
+barplot(arm_values, names.arg = 1:length(arm_values), col = 'lightblue', main = 'Distribution of Arm Values', xlab = 'Arm', ylab = 'Arm Value')
+```
