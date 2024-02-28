@@ -1,6 +1,6 @@
 ```{r}
 
-# Install the required packages
+## Install the required packages
 install.packages("dplyr")
 install.packages("caret")
 install.packages("DataExplorer")
