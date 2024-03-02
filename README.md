@@ -31,9 +31,6 @@ This project consists of an R Markdown analysis (`project.Rmd`), and a dataset (
 
 4. **Explore the Dataset**:
    - Load `my_data.csv` into R using `read.csv('path/to/my_data.csv')` to explore the dataset independently.
-
-5. **Viewing Results**:
-   - The `project.nb.html` file contains the notebook version of the primary analysis. Open it in a web browser to view the results directly.
   
 ## Acknowledgements
 
