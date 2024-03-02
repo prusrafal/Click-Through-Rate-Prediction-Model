@@ -34,3 +34,13 @@ This project consists of an R Markdown analysis (`project.Rmd`), and a dataset (
 
 5. **Viewing Results**:
    - The `project.nb.html` file contains the notebook version of the primary analysis. Open it in a web browser to view the results directly.
+  
+## Acknowledgements
+
+This project utilizes the "Click-Through Rate Prediction" dataset, available on Kaggle. The dataset is instrumental in evaluating ad performance through click-through rate metrics, crucial for optimizing ad prediction systems in online advertising. 
+
+## License
+
+The usage of the dataset follows the terms and conditions provided by Kaggle and in particular, the data holder, Avazu. For more detailed information, please refer to the [Click-Through Rate Prediction]([https://www.kaggle.com/](https://www.kaggle.com/c/avazu-ctr-prediction/overview)https://www.kaggle.com/c/avazu-ctr-prediction/overview).
+
+
