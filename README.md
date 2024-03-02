@@ -38,6 +38,6 @@ This project utilizes the "Click-Through Rate Prediction" dataset, available on 
 
 ## License
 
-The usage of the dataset follows the terms and conditions provided by Kaggle and in particular, the data holder, Avazu. For more detailed information, please refer to the [Click-Through Rate Prediction]([https://www.kaggle.com/](https://www.kaggle.com/c/avazu-ctr-prediction/overview).
+The usage of the dataset follows the terms and conditions provided by Kaggle and in particular, the data holder, Avazu. For more detailed information, please refer to the: https://www.kaggle.com/c/avazu-ctr-prediction.
 
 
