@@ -16,7 +16,7 @@ This project applies Multi-Armed Bandit algorithms to enhance online ad click-th
 
 ## Usage
 
-This project consists of an R Markdown analysis (`project.Rmd`), a secondary analysis script (`code2.Rmd`), and a dataset (`my_data.csv`). To replicate the study or explore the data with our analyses, follow these steps:
+This project consists of an R Markdown analysis (`project.Rmd`), and a dataset (`my_data.csv`). To replicate the study or explore the data with our analyses, follow these steps:
 
 1. **Prepare Your Environment**:
    - Ensure you have R and RStudio installed.
@@ -28,12 +28,9 @@ This project consists of an R Markdown analysis (`project.Rmd`), a secondary ana
 3. **Run the Analysis**:
    - Open `project.Rmd` in RStudio to view the primary analysis.
    - To execute the code and generate the report, click on "Knit" in RStudio.
-   - For the secondary analysis, follow the same steps with `code2.Rmd`.
 
 4. **Explore the Dataset**:
    - Load `my_data.csv` into R using `read.csv('path/to/my_data.csv')` to explore the dataset independently.
 
 5. **Viewing Results**:
    - The `project.nb.html` file contains the notebook version of the primary analysis. Open it in a web browser to view the results directly.
-
-This setup allows for a comprehensive examination of the Click-Through Rate Prediction using Multi-Armed Bandit models, leveraging the provided dataset and analysis scripts.
