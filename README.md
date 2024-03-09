@@ -19,7 +19,7 @@ This project applies Multi-Armed Bandit algorithms to enhance online ad click-th
 This project consists of an R Markdown analysis (`project.Rmd`), and a dataset (`my_data.csv`). To replicate the study or explore the data with our analyses, follow these steps:
 
 1. **Prepare Your Environment**:
-   - Ensure you have R and RStudio installed.
+   - Ensure you have R plus RStudio installed.
    - Install required R packages with `install.packages(c("package1", "package2", ...))`.
 
 2. **Download the Project Files**:
